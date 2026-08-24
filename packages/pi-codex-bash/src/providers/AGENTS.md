@@ -1,0 +1,2 @@
+- Structured mode stays function-only for parallel tool calls; never restore request-payload contract surgery.
+- The extension never replaces Pi's registered providers; Codex model traffic uses Pi's stock `openai-codex` provider.

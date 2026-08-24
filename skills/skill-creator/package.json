@@ -1,0 +1,34 @@
+{
+  "name": "skill-creator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reusable skill design and maintenance - SKILL.md creation, trigger design, body structure, validation, consolidation",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "pi-skill-plugin",
+    "skill",
+    "skill-creator"
+  ],
+  "license": "MIT",
+  "main": "./index.ts",
+  "files": [
+    "index.ts",
+    "skills/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.0"
+  },
+  "kuraxii": {
+    "type": "skill",
+    "tags": [
+      "skill",
+      "skill-creator",
+      "workflow"
+    ]
+  }
+}

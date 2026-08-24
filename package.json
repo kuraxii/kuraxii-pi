@@ -1,0 +1,12 @@
+{
+  "name": "@kuraxii/pi-toolset",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal pi coding agent toolset - skill plugins and extensions",
+  "scripts": {
+    "install": "bun scripts/install.ts",
+    "uninstall": "bun scripts/install.ts uninstall",
+    "build": "bun scripts/build.ts",
+    "bootstrap": "bash scripts/bootstrap.sh"
+  }
+}

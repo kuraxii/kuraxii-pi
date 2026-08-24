@@ -1,0 +1,2 @@
+- `register.ts` is the composition root; `runtime.ts` owns process/session state; `events.ts` visibly maps Pi events to feature owners.
+- Preserve lazy cold-feature boundaries; do not trade startup cost for pass-through wrappers or hidden dispatch.

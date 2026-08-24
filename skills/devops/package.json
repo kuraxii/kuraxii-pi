@@ -1,0 +1,37 @@
+{
+  "name": "devops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DevOps skill plugin - deployment, CI/CD, infrastructure management",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "pi-skill-plugin",
+    "skill",
+    "devops"
+  ],
+  "license": "MIT",
+  "main": "./index.ts",
+  "files": [
+    "index.ts",
+    "skills/**/*",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.83.0",
+    "typescript": "^7.0.0"
+  },
+  "kuraxii": {
+    "type": "skill",
+    "tags": [
+      "devops",
+      "deploy",
+      "infra"
+    ]
+  }
+}

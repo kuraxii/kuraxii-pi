@@ -1,0 +1,37 @@
+{
+  "name": "anti-ai-copy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voice-preserving prose drafting, rewriting, and review - remove AI/corporate tells",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "pi-skill-plugin",
+    "skill",
+    "writing",
+    "copy",
+    "anti-ai"
+  ],
+  "license": "MIT",
+  "main": "./index.ts",
+  "files": [
+    "index.ts",
+    "skills/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.0"
+  },
+  "kuraxii": {
+    "type": "skill",
+    "tags": [
+      "writing",
+      "copy",
+      "prose",
+      "anti-ai"
+    ]
+  }
+}

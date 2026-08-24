@@ -1,0 +1,37 @@
+{
+  "name": "agent-native-hardening",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Architecture hardening: ownership, boundaries, contracts, state safety, duplication, execution/import topology",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "pi-skill-plugin",
+    "skill",
+    "architecture",
+    "hardening",
+    "refactor"
+  ],
+  "license": "MIT",
+  "main": "./index.ts",
+  "files": [
+    "index.ts",
+    "skills/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.0"
+  },
+  "kuraxii": {
+    "type": "skill",
+    "tags": [
+      "architecture",
+      "hardening",
+      "refactor",
+      "review"
+    ]
+  }
+}

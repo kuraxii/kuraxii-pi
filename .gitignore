@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.pi/npm/
+.pi/git/
+.DS_Store
+*.log
+.bun/
+
+# 编译产物（用 bun scripts/install.ts 直接运行）
+scripts/install
+scripts/build

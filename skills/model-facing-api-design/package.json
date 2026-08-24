@@ -1,0 +1,35 @@
+{
+  "name": "model-facing-api-design",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Model-facing Pi tool contracts: names, descriptions, schemas, prompt metadata, results, errors, truncation, recovery, token cost",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "pi-skill-plugin",
+    "skill",
+    "api-design",
+    "tool-contract"
+  ],
+  "license": "MIT",
+  "main": "./index.ts",
+  "files": [
+    "index.ts",
+    "skills/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.0"
+  },
+  "kuraxii": {
+    "type": "skill",
+    "tags": [
+      "api-design",
+      "tool-contract",
+      "prompt"
+    ]
+  }
+}

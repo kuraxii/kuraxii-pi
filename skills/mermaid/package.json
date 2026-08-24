@@ -1,0 +1,38 @@
+{
+  "name": "mermaid",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mermaid diagram skill - generate .mmd and export to PNG/SVG/PDF",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "pi-skill-plugin",
+    "skill",
+    "mermaid",
+    "diagram",
+    "flowchart"
+  ],
+  "license": "MIT",
+  "main": "./index.ts",
+  "files": [
+    "index.ts",
+    "skills/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.0"
+  },
+  "kuraxii": {
+    "type": "skill",
+    "tags": [
+      "mermaid",
+      "diagram",
+      "flowchart",
+      "sequence",
+      "visualization"
+    ]
+  }
+}
