@@ -45,7 +45,7 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      const labels = skills.map((s) => s.overview);
+      const labels = skills.map((s) => `${s.pluginName} › ${s.overview}`);
       const selected = await ctx.ui.select("选择要安装的技能:", labels);
       if (!selected) return;
 
@@ -83,7 +83,7 @@ export default function (pi: ExtensionAPI) {
       }
 
       const list = skills
-        .map((s) => `- ${s.name}: ${s.overview}`)
+        .map((s) => `- ${s.pluginName} › ${s.overview}`)
         .join("\n");
 
       return {
