@@ -41,7 +41,8 @@ kuraxii-pi/
   "name": "@kuraxii/pi-xxx",
   "kuraxii": {
     "type": "skill" | "extension",
-    "tags": ["tag1", "tag2"]
+    "tags": ["tag1", "tag2"],
+    "overview": "Brief English summary of what this skill does"
   }
 }
 ```
@@ -49,6 +50,7 @@ kuraxii-pi/
 - `type: "skill"` → 属于 `skills/`，提供技能，带 `discover()` 接口
 - `type: "extension"` → 属于 `packages/`，是 pi 扩展
 - `tags` → 技能标签，用于选择器展示和分类
+- `overview` → 技能/插件功能概述（英文简述），是选择器面板与 LLM 匹配的**主要文案来源**；由 agent 读取分析 SKILL.md 后生成
 - **缺少 `kuraxii` 元数据或 type 非法 → `install.ts` 判定为不可信插件，安装终止**
 
 ### 2. 技能发现接口
@@ -60,7 +62,7 @@ import { join } from "node:path";
 
 export interface SkillInfo {
   name: string;         // 技能名，用作 .pi/skills/<name>/
-  description: string;  // 技能描述（选择器展示、LLM 匹配）
+  description: string;  // 技能描述（兑底文案；主文案来自 kuraxii.overview 元数据）
   sourceDir: string;    // 技能目录绝对路径（SKILL.md 所在目录）
   tags: string[];       // 技能标签
 }
@@ -76,6 +78,9 @@ export async function discover(): Promise<SkillInfo[]> {
   ];
 }
 ```
+
+> **文案来源**：选择器面板与 `list_skills` 的展示文案**优先读取 `package.json` 的 `kuraxii.overview`**；
+> 缺失时兑底使用 `discover()` 返回的 `description`。新增技能时统一在元数据中维护 `overview`。
 
 ### 3. 技能目录结构
 
@@ -133,10 +138,11 @@ bun run build        # = bun scripts/build.ts
 
 1. **复制模板**：技能 → `cp -r skills/pi-skill-template skills/pi-skill-<name>`；扩展 → 参考 `packages/pi-skill-selector`
 2. **改 package.json**：`name`、`description`、`kuraxii.type`、`keywords`
-3. **改 index.ts**：更新 `discover()` 返回的 `SkillInfo[]`（名称、描述、路径、标签）
+3. **改 index.ts**：更新 `discover()` 返回的 `SkillInfo[]`（名称、路径、标签）
 4. **写 SKILL.md**：在 `skills/<name>/SKILL.md` 填写 frontmatter + 指令
-5. **安装**：`bun run install`（自动扫描并安装）
-6. **在项目中使用**：`/workflow` 选择技能，复制到该项目 `.pi/skills/`
+5. **生成 overview**：agent 读取并分析 `SKILL.md`，用英文简要概括该技能的功能（用途/适用场景/核心能力），写入 `package.json` 的 `kuraxii.overview` 字段
+6. **安装**：`bun run install`（自动扫描并安装）
+7. **在项目中使用**：`/workflow` 选择技能，复制到该项目 `.pi/skills/`
 
 ## 常用命令
 

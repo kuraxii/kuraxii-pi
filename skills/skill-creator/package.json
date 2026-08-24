@@ -29,6 +29,7 @@
       "skill",
       "skill-creator",
       "workflow"
-    ]
+    ],
+    "overview": "Reusable skill design and maintenance: SKILL.md creation, trigger design, body structure, supporting files, validation, consolidation, cross-agent ports."
   }
 }

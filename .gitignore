@@ -3,6 +3,7 @@ dist/
 *.tsbuildinfo
 .pi/npm/
 .pi/git/
+.pi/skills/
 .DS_Store
 *.log
 .bun/

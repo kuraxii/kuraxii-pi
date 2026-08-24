@@ -36,6 +36,7 @@
       "architecture",
       "uml",
       "er"
-    ]
+    ],
+    "overview": "Create diagrams, flowcharts, architecture diagrams, UML, SysML/MBSE, BPMN, network topology, cloud architecture, ML/DL figures, mind maps. Generates .drawio XML and exports to PNG/SVG/PDF/JPG via draw.io desktop CLI."
   }
 }

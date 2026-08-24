@@ -30,6 +30,7 @@
       "api-design",
       "tool-contract",
       "prompt"
-    ]
+    ],
+    "overview": "Model-facing Pi tool contracts: names, descriptions, schemas, prompt metadata, results, errors, truncation, recovery, token cost. For tool design, review, or selection/call failures."
   }
 }

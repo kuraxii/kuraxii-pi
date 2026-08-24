@@ -30,6 +30,7 @@
     "type": "skill",
     "tags": [
       "template"
-    ]
+    ],
+    "overview": "Template for creating new pi skill plugins. Use as a starting point for new skill development."
   }
 }

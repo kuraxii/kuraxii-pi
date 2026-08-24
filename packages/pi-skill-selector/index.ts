@@ -28,6 +28,7 @@ interface SkillMeta {
 interface ResolvedPackage {
   name: string;
   entryPoint: string;
+  overview?: string;
 }
 
 // ── 入口 ────────────────────────────────────────────────
@@ -165,10 +166,11 @@ async function discoverAllSkills(): Promise<SkillMeta[]> {
         const result = await mod.discover();
         if (Array.isArray(result)) {
           for (const skill of result) {
-            if (skill.name && skill.description && skill.sourceDir) {
+            if (skill.name && skill.sourceDir) {
               skills.push({
                 name: skill.name,
-                description: skill.description,
+                // 优先使用元数据中的 overview，缺失时兑底用 discover() 返回的 description
+                description: pkg.overview || skill.description,
                 sourceDir: skill.sourceDir,
                 pluginName: pkg.name,
                 tags: skill.tags ?? [],
@@ -272,6 +274,7 @@ function resolveLocalPackage(pkgDir: string): ResolvedPackage | null {
     return {
       name: pkgJson.name || pkgDir.split("/").pop()!,
       entryPoint: entryPath,
+      overview: pkgJson.kuraxii?.overview,
     };
   } catch {
     return null;
