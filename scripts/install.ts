@@ -8,7 +8,7 @@
  *   bun scripts/install.ts uninstall    # 卸载全部
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join, dirname, resolve, basename } from "node:path";
 import { homedir } from "node:os";
@@ -102,6 +102,40 @@ function getInstalledSources(): string[] {
   return settings.packages.map((p: any) => (typeof p === "string" ? p : p.source));
 }
 
+// ── 技能包过滤：不自动加载，仅供选择器按需发现 ──────────────
+
+/**
+ * 将全局 settings.json 中的 skill 类型插件条目改写为对象形式并设 skills: []，
+ * 使 pi 安装该包但【不自动加载】其 SKILL.md。skill 只是被「注册」到全局，
+ * 供 pi-skill-selector 通过 discover() 发现、按需复制到项目 .pi/skills/。
+ */
+function applySkillFilters(): void {
+  const settings = readJson(GLOBAL_SETTINGS_PATH);
+  if (!settings || !Array.isArray(settings.packages)) return;
+
+  let changed = false;
+  const nextPackages = settings.packages.map((entry: any) => {
+    const source = typeof entry === "string" ? entry : entry?.source;
+    if (!source) return entry;
+
+    // 解析为绝对路径
+    const absSrc = source.startsWith("./")
+      ? resolve(join(GLOBAL_SETTINGS_PATH, ".."), source)
+      : source;
+
+    const meta = existsSync(absSrc) ? validateMeta(absSrc) : null;
+    if (!meta || meta.type !== "skill") return entry; // 只过滤 skill 类型
+
+    changed = true;
+    if (typeof entry === "string") return { source, skills: [] };
+    return { ...entry, skills: [] };
+  });
+
+  if (!changed) return;
+  settings.packages = nextPackages;
+  writeFileSync(GLOBAL_SETTINGS_PATH, JSON.stringify(settings, null, 2) + "\n", "utf-8");
+}
+
 // ── 同步主流程 ──────────────────────────────────────────
 
 async function cmdSync() {
@@ -130,7 +164,10 @@ async function cmdSync() {
     console.log();
   }
 
-  // 删除已卸载的（已安装、属于本仓库、但目录不再存在）
+  // 技能包过滤：已安装但默认不自动加载，仅供选择器按需发现
+  applySkillFilters();
+
+  console.log("🔍 检查已移除的插件...");
   const toRemove = installed
     .map((src) =>
       src.startsWith("./") || src.startsWith("../")
