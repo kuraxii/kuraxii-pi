@@ -33,6 +33,6 @@
       "deploy",
       "infra"
     ],
-    "overview": "DevOps operations: deployment, CI/CD, Docker, Kubernetes, infrastructure as code, and server maintenance."
+    "overview": "DevOps operations: deployment, CI/CD, Docker, Kubernetes, and infrastructure as code."
   }
 }

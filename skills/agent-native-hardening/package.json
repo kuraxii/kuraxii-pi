@@ -33,6 +33,6 @@
       "refactor",
       "review"
     ],
-    "overview": "Architecture hardening: ownership, boundaries, contracts, state safety, duplication, execution/import topology, traversability, feedback loops, test fit, change decomposition."
+    "overview": "Architecture hardening: ownership, boundaries, contracts, state safety, and change decomposition."
   }
 }

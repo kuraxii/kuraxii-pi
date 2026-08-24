@@ -19,7 +19,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 interface SkillMeta {
   name: string;
-  description: string;
+  overview: string;
   sourceDir: string;
   pluginName: string;
   tags: string[];
@@ -45,12 +45,7 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      const labels = skills.map(
-        (s) => {
-          const tagStr = s.tags.length > 0 ? ` [${s.tags.join(", ")}]` : "";
-          return `${s.pluginName} › ${s.name}${tagStr}: ${s.description}`;
-        },
-      );
+      const labels = skills.map((s) => s.overview);
       const selected = await ctx.ui.select("选择要安装的技能:", labels);
       if (!selected) return;
 
@@ -88,7 +83,7 @@ export default function (pi: ExtensionAPI) {
       }
 
       const list = skills
-        .map((s) => `- **${s.name}** (${s.pluginName}): ${s.description}`)
+        .map((s) => `- ${s.name}: ${s.overview}`)
         .join("\n");
 
       return {
@@ -101,7 +96,7 @@ export default function (pi: ExtensionAPI) {
         details: {
           skills: skills.map((s) => ({
             name: s.name,
-            description: s.description,
+            overview: s.overview,
             plugin: s.pluginName,
           })),
         },
@@ -144,7 +139,7 @@ export default function (pi: ExtensionAPI) {
         ],
         details: {
           name: match.name,
-          description: match.description,
+          overview: match.overview,
           path: join(".pi", "skills", match.name),
         },
       };
@@ -170,7 +165,7 @@ async function discoverAllSkills(): Promise<SkillMeta[]> {
               skills.push({
                 name: skill.name,
                 // 优先使用元数据中的 overview，缺失时兑底用 discover() 返回的 description
-                description: pkg.overview || skill.description,
+                overview: pkg.overview || skill.description,
                 sourceDir: skill.sourceDir,
                 pluginName: pkg.name,
                 tags: skill.tags ?? [],

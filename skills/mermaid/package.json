@@ -34,6 +34,6 @@
       "sequence",
       "visualization"
     ],
-    "overview": "Generate Mermaid diagrams (.mmd) and export to PNG/SVG/PDF using mmdc CLI or Kroki API. Supports 17+ diagram types with fully automatic layout."
+    "overview": "Generate Mermaid diagrams (.mmd) and export to PNG/SVG/PDF; supports 17+ diagram types."
   }
 }

@@ -31,6 +31,6 @@
       "context",
       "instructions"
     ],
-    "overview": "Scoped AGENTS.md authoring and maintenance for repo, nested, global, or personal instructions; rule pruning; scope placement; separating agent guidance from README/docs."
+    "overview": "Scoped AGENTS.md authoring and maintenance for repo, nested, global, or personal instructions."
   }
 }
