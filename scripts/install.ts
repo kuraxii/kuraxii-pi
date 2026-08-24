@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { join, dirname, isAbsolute, resolve, basename, sep } from "node:path";
+import { join, dirname, resolve, basename } from "node:path";
 import { homedir } from "node:os";
 import { spawnSync } from "node:child_process";
 
@@ -138,9 +138,8 @@ async function cmdSync() {
         : src
     )
     .filter((absSrc) => {
-      // 只处理本仓库内的插件，绝不触碰全局第三方插件
-      const repoPrefix = REPO_ROOT.endsWith(sep) ? REPO_ROOT : REPO_ROOT + sep;
-      if (absSrc !== REPO_ROOT && !absSrc.startsWith(repoPrefix)) return false;
+      // 只处理有 kuraxii 元数据的 skill/extension 插件
+      if (!validateMeta(absSrc)) return false;
       const dirName = basename(absSrc);
       return !plugins.some((p) => p.dirName === dirName);
     });
@@ -177,13 +176,10 @@ async function cmdUninstall() {
       ? resolve(dirname(GLOBAL_SETTINGS_PATH), src)
       : src;
 
-    // 只卸载本仓库安装的可信插件，忽略全局第三方插件
-    const repoPrefix = REPO_ROOT.endsWith(sep) ? REPO_ROOT : REPO_ROOT + sep;
-    if (absSrc === REPO_ROOT || absSrc.startsWith(repoPrefix)) {
-      const meta = validateMeta(absSrc);
-      if (meta) {
-        toRemove.push(absSrc);
-      }
+    // 只处理有 kuraxii 元数据的 skill/extension 插件
+    const meta = validateMeta(absSrc);
+    if (meta) {
+      toRemove.push(absSrc);
     }
   }
 
