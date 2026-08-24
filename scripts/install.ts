@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { join, dirname, isAbsolute, resolve, basename } from "node:path";
+import { join, dirname, isAbsolute, resolve, basename, sep } from "node:path";
 import { homedir } from "node:os";
 import { spawnSync } from "node:child_process";
 
@@ -130,21 +130,19 @@ async function cmdSync() {
     console.log();
   }
 
-  // 删除已卸载的（已安装但目录不再存在）
+  // 删除已卸载的（已安装、属于本仓库、但目录不再存在）
   const toRemove = installed
-    .filter((src) => {
-      // 解析已安装路径，检查对应的目录是否还在扫描结果中
-      const absSrc = src.startsWith("./") || src.startsWith("../")
+    .map((src) =>
+      src.startsWith("./") || src.startsWith("../")
         ? resolve(dirname(GLOBAL_SETTINGS_PATH), src)
-        : src;
+        : src
+    )
+    .filter((absSrc) => {
+      // 只处理本仓库内的插件，绝不触碰全局第三方插件
+      const repoPrefix = REPO_ROOT.endsWith(sep) ? REPO_ROOT : REPO_ROOT + sep;
+      if (absSrc !== REPO_ROOT && !absSrc.startsWith(repoPrefix)) return false;
       const dirName = basename(absSrc);
       return !plugins.some((p) => p.dirName === dirName);
-    })
-    .map((src) => {
-      if (src.startsWith("./") || src.startsWith("../")) {
-        return resolve(dirname(GLOBAL_SETTINGS_PATH), src);
-      }
-      return src;
     });
 
   if (toRemove.length > 0) {
@@ -179,9 +177,13 @@ async function cmdUninstall() {
       ? resolve(dirname(GLOBAL_SETTINGS_PATH), src)
       : src;
 
-    const meta = validateMeta(absSrc);
-    if (meta) {
-      toRemove.push(absSrc);
+    // 只卸载本仓库安装的可信插件，忽略全局第三方插件
+    const repoPrefix = REPO_ROOT.endsWith(sep) ? REPO_ROOT : REPO_ROOT + sep;
+    if (absSrc === REPO_ROOT || absSrc.startsWith(repoPrefix)) {
+      const meta = validateMeta(absSrc);
+      if (meta) {
+        toRemove.push(absSrc);
+      }
     }
   }
 

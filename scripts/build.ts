@@ -10,7 +10,7 @@ import { join, dirname } from "node:path";
 const ROOT = import.meta.dir;
 
 const targets: { name: string; source: string }[] = [
-  { name: "sync", source: "scripts/sync.ts" },
+  { name: "install", source: "scripts/install.ts" },
 ];
 
 for (const t of targets) {
