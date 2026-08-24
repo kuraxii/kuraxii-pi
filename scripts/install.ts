@@ -102,14 +102,15 @@ function getInstalledSources(): string[] {
   return settings.packages.map((p: any) => (typeof p === "string" ? p : p.source));
 }
 
-// ── 技能包过滤：不自动加载，仅供选择器按需发现 ──────────────
+// ── 包元数据校验与 skill 过滤 ──────────────────────────
 
 /**
- * 将全局 settings.json 中的 skill 类型插件条目改写为对象形式并设 skills: []，
- * 使 pi 安装该包但【不自动加载】其 SKILL.md。skill 只是被「注册」到全局，
- * 供 pi-skill-selector 通过 discover() 发现、按需复制到项目 .pi/skills/。
+ * 遍历全局 settings.json 中的已安装包：
+ * 1. 校验所有插件（skill + extension）都有 kuraxii 元数据，缺失则警告
+ * 2. 对 skill 类型插件改写为对象形式 {source, skills: []}，使其不自动加载
+ *    但仍保持在 settings 中供 selector 通过 discover() 发现
  */
-function applySkillFilters(): void {
+function validateAndFilterPackages(): void {
   const settings = readJson(GLOBAL_SETTINGS_PATH);
   if (!settings || !Array.isArray(settings.packages)) return;
 
@@ -124,7 +125,11 @@ function applySkillFilters(): void {
       : source;
 
     const meta = existsSync(absSrc) ? validateMeta(absSrc) : null;
-    if (!meta || meta.type !== "skill") return entry; // 只过滤 skill 类型
+    if (!meta) {
+      console.warn(`  ⚠️  ${basename(absSrc)} 缺少 kuraxii 元数据，跳过`);
+      return entry;
+    }
+    if (meta.type !== "skill") return entry; // extension 类型，保持原样
 
     changed = true;
     if (typeof entry === "string") return { source, skills: [] };
@@ -165,7 +170,7 @@ async function cmdSync() {
   }
 
   // 技能包过滤：已安装但默认不自动加载，仅供选择器按需发现
-  applySkillFilters();
+  validateAndFilterPackages();
 
   console.log("🔍 检查已移除的插件...");
   const toRemove = installed
