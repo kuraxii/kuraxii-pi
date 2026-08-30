@@ -20,7 +20,6 @@ for (const t of targets) {
     [
       "build",
       "--compile",
-      "--target=bun-darwin-arm64",
       t.source,
       `--outfile=${join(ROOT, t.name)}`,
     ],

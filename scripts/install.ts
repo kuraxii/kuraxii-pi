@@ -8,14 +8,24 @@
  *   bun scripts/install.ts uninstall    # 卸载全部
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { join, dirname, resolve, basename } from "node:path";
+import { join, dirname, resolve, basename, isAbsolute } from "node:path";
 import { homedir } from "node:os";
 import { spawnSync } from "node:child_process";
 
 const REPO_ROOT = dirname(import.meta.dir);
 const GLOBAL_SETTINGS_PATH = join(homedir(), ".pi", "agent", "settings.json");
+const SETTINGS_DIR = dirname(GLOBAL_SETTINGS_PATH);
+const INSTALL_ROOT = join(homedir(), ".pi", "agent", "kuraxii");
+
+/** 将 settings.json 中记录的相对路径（相对 ~/.pi/agent/）解析为绝对路径 */
+function resolveSource(source: string): string {
+  if (source.startsWith("npm:") || source.startsWith("git:")) return source;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(source)) return source; // http(s):// 等 URL
+  if (isAbsolute(source)) return source;
+  return resolve(SETTINGS_DIR, source);
+}
 
 // ── 工具 ────────────────────────────────────────────────
 
@@ -27,6 +37,16 @@ function runPi(args: string[], cwd = REPO_ROOT) {
   });
   if (result.status !== 0) {
     console.error(`\n❌ pi ${args.join(" ")} 失败`);
+    process.exit(result.status ?? 1);
+  }
+}
+
+function copyDir(src: string, dst: string) {
+  rmSync(dst, { recursive: true, force: true });
+  mkdirSync(dirname(dst), { recursive: true });
+  const result = spawnSync("cp", ["-a", src, dst], { stdio: "inherit" });
+  if (result.status !== 0) {
+    console.error(`\n❌ 复制失败: ${src} → ${dst}`);
     process.exit(result.status ?? 1);
   }
 }
@@ -48,8 +68,9 @@ interface KuraxiiMeta {
 
 interface PluginEntry {
   name: string;       // 包名
-  dir: string;        // 插件目录绝对路径
+  dir: string;        // 插件目录绝对路径（仓库源码）
   dirName: string;    // 目录名
+  category: "packages" | "skills"; // 所属子目录
   meta: KuraxiiMeta;
 }
 
@@ -68,7 +89,7 @@ function validateMeta(pkgDir: string): KuraxiiMeta | null {
 
 async function scanPlugins(): Promise<PluginEntry[]> {
   const plugins: PluginEntry[] = [];
-  const scanDirs = ["packages", "skills"];
+  const scanDirs = ["packages", "skills"] as const;
 
   for (const subDir of scanDirs) {
     const dir = join(REPO_ROOT, subDir);
@@ -86,6 +107,7 @@ async function scanPlugins(): Promise<PluginEntry[]> {
         name: pkgJson?.name || entry.name,
         dir: pkgDir,
         dirName: entry.name,
+        category: subDir,
         meta,
       });
     }
@@ -106,9 +128,9 @@ function getInstalledSources(): string[] {
 
 /**
  * 遍历全局 settings.json 中的已安装包：
- * 1. 校验所有插件（skill + extension）都有 kuraxii 元数据，缺失则警告
- * 2. 对 skill 类型插件改写为对象形式 {source, skills: []}，使其不自动加载
- *    但仍保持在 settings 中供 selector 通过 discover() 发现
+ * 对 skill 类型插件改写为对象形式 {source, skills: []}，使其不自动加载，
+ * 但仍保持在 settings 中供 selector 通过 discover() 发现。
+ * 非本仓库插件或目录已失效的条目保持不变（失效目录交由清理处理）。
  */
 function validateAndFilterPackages(): void {
   const settings = readJson(GLOBAL_SETTINGS_PATH);
@@ -120,15 +142,10 @@ function validateAndFilterPackages(): void {
     if (!source) return entry;
 
     // 解析为绝对路径
-    const absSrc = source.startsWith("./")
-      ? resolve(join(GLOBAL_SETTINGS_PATH, ".."), source)
-      : source;
+    const absSrc = resolveSource(source);
 
     const meta = existsSync(absSrc) ? validateMeta(absSrc) : null;
-    if (!meta) {
-      console.warn(`  ⚠️  ${basename(absSrc)} 缺少 kuraxii 元数据，跳过`);
-      return entry;
-    }
+    if (!meta) return entry; // 非本仓库插件或目录已失效（交由清理处理）
     if (meta.type !== "skill") return entry; // extension 类型，保持原样
 
     changed = true;
@@ -139,6 +156,27 @@ function validateAndFilterPackages(): void {
   if (!changed) return;
   settings.packages = nextPackages;
   writeFileSync(GLOBAL_SETTINGS_PATH, JSON.stringify(settings, null, 2) + "\n", "utf-8");
+}
+
+// ── 清理安装副本目录 ────────────────────────────────────
+
+async function pruneInstallRoot(plugins: PluginEntry[]) {
+  for (const category of ["packages", "skills"] as const) {
+    const dir = join(INSTALL_ROOT, category);
+    if (!existsSync(dir)) continue;
+
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const stillCurrent = plugins.some(
+        (p) => p.category === category && p.dirName === entry.name,
+      );
+      if (!stillCurrent) {
+        console.log(`🗑️  删除已移除插件的副本: ${join(dir, entry.name)}`);
+        rmSync(join(dir, entry.name), { recursive: true, force: true });
+      }
+    }
+  }
 }
 
 // ── 同步主流程 ──────────────────────────────────────────
@@ -161,29 +199,34 @@ async function cmdSync() {
   }
   console.log(" ✓ 全部通过\n");
 
-  // 安装/更新
-  console.log("📦 安装/更新插件:\n");
+  // 安装/更新：先复制到 ~/.pi/agent/kuraxii/，再安装副本（不引用仓库源码）
+  console.log(`📦 安装/更新插件 (→ ${INSTALL_ROOT}):\n`);
   for (const p of plugins) {
+    const targetDir = join(INSTALL_ROOT, p.category, p.dirName);
     console.log(`  • ${p.name}`);
-    runPi(["install", p.dir]);
+    copyDir(p.dir, targetDir);
+    runPi(["install", targetDir]);
     console.log();
   }
 
   // 技能包过滤：已安装但默认不自动加载，仅供选择器按需发现
   validateAndFilterPackages();
 
-  console.log("🔍 检查已移除的插件...");
+  // 清理安装副本目录中已不在仓库的插件
+  await pruneInstallRoot(plugins);
+
+  console.log("🔍 检查已移除/失效的插件...");
   const toRemove = installed
-    .map((src) =>
-      src.startsWith("./") || src.startsWith("../")
-        ? resolve(dirname(GLOBAL_SETTINGS_PATH), src)
-        : src
-    )
+    .map((src) => resolveSource(src))
     .filter((absSrc) => {
-      // 只处理有 kuraxii 元数据的 skill/extension 插件
-      if (!validateMeta(absSrc)) return false;
       const dirName = basename(absSrc);
-      return !plugins.some((p) => p.dirName === dirName);
+      const current = plugins.find((p) => p.dirName === dirName);
+      if (current) {
+        // 仍在仓库中：仅当指向的不是新安装副本时移除（旧位置残留，如仓库源码）
+        return absSrc !== join(INSTALL_ROOT, current.category, current.dirName);
+      }
+      // 已不在仓库中：仅当还能读到 kuraxii 元数据时移除（确认是本仓库插件）
+      return validateMeta(absSrc) !== null;
     });
 
   if (toRemove.length > 0) {
@@ -204,19 +247,13 @@ async function cmdSync() {
 
 async function cmdUninstall() {
   const installed = getInstalledSources();
-  if (installed.length === 0) {
-    console.log("没有已安装的插件");
-    return;
-  }
 
   // 扫描已安装的包，找出属于本项目的（有 kuraxii 元数据）
   console.log("🔍 扫描已安装插件中的本项目插件...");
   const toRemove: string[] = [];
 
   for (const src of installed) {
-    const absSrc = src.startsWith("./") || src.startsWith("../")
-      ? resolve(dirname(GLOBAL_SETTINGS_PATH), src)
-      : src;
+    const absSrc = resolveSource(src);
 
     // 只处理有 kuraxii 元数据的 skill/extension 插件
     const meta = validateMeta(absSrc);
@@ -225,19 +262,23 @@ async function cmdUninstall() {
     }
   }
 
-  if (toRemove.length === 0) {
+  if (toRemove.length > 0) {
+    console.log(`   发现 ${toRemove.length} 个\n`);
+    console.log("🗑️  卸载中...\n");
+
+    for (const src of toRemove) {
+      console.log(`  → ${basename(src)}`);
+      runPi(["remove", src]);
+      console.log();
+    }
+  } else {
     console.log("没有属于本项目的已安装插件");
-    return;
   }
 
-  console.log(`   发现 ${toRemove.length} 个\n`);
-  console.log("🗑️  卸载中...\n");
-
-  for (const src of toRemove) {
-    const name = basename(src);
-    console.log(`  → ${name}`);
-    runPi(["remove", src]);
-    console.log();
+  // 删除安装副本目录
+  if (existsSync(INSTALL_ROOT)) {
+    console.log(`🗑️  删除安装副本目录 ${INSTALL_ROOT}`);
+    rmSync(INSTALL_ROOT, { recursive: true, force: true });
   }
 
   console.log(`🎉 已卸载全部 ${toRemove.length} 个本项目插件`);

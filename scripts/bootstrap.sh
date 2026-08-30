@@ -29,8 +29,8 @@ fi
 # 2. 编译脚本
 echo "→ 编译脚本..."
 cd "$ROOT"
-$BUN build --compile --target=bun-darwin-arm64 scripts/install.ts --outfile scripts/install
-$BUN build --compile --target=bun-darwin-arm64 scripts/build.ts --outfile scripts/build
+$BUN build --compile scripts/install.ts --outfile scripts/install
+$BUN build --compile scripts/build.ts --outfile scripts/build
 echo "✓ 编译完成:"
 echo "    scripts/install  ($(du -h scripts/install | cut -f1))"
 echo "    scripts/build    ($(du -h scripts/build | cut -f1))"

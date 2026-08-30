@@ -18,9 +18,9 @@ kuraxii-pi/
 │   ├── pi-skill-selector/    # 核心：技能选择器（/workflow 命令 + 工具）
 │   └── pi-codex-bash/        # Codex 风格 shell 适配器
 ├── skills/                   # 技能插件（type: "skill"）
-│   ├── pi-skill-devops/      # 例：DevOps 技能
-│   ├── pi-skill-template/    # 技能插件模板
-│   └── pi-skill-test-*/      # 测试用技能
+│   ├── devops/               # 例：DevOps 技能
+│   ├── template/             # 技能插件模板
+│   └── ...                   # 其余技能
 ├── scripts/
 │   ├── install.ts            # 插件安装/卸载脚本（入口）
 │   ├── bootstrap.sh          # 引导脚本：下载 bun 到 .bun/ 并编译
@@ -95,7 +95,7 @@ skills/my-skill/
 
 ### 4. 插件安装/卸载
 
-插件统一通过 `pi install <插件目录绝对路径>` 安装，不引入网络依赖。核心入口是 `scripts/install.ts`：
+插件统一**本地管理、不引入网络依赖**。核心入口是 `scripts/install.ts`：
 
 ```bash
 bun scripts/install.ts              # 同步：扫描并安装/更新/删除
@@ -105,8 +105,10 @@ bun scripts/install.ts uninstall    # 卸载本仓库全部插件
 `install.ts` 流程：
 1. 扫描 `packages/` + `skills/` 下的所有子目录
 2. 用 `kuraxii` 元数据校验身份与可信度
-3. 对每个有效插件的绝对路径执行 `pi install`
-4. 删除已安装但目录已不存在的插件
+3. 把每个有效插件复制到 `~/.pi/agent/kuraxii/{packages,skills}/<name>/`，再对**副本**执行 `pi install`（不引用仓库源码，仓库可自由移动/删除）
+4. 删除已不在仓库的插件：清理 settings 中的旧条目（含旧位置残留）与副本目录
+
+> `pi install` 对本地路径**只登记不复制**，所以必须由 `install.ts` 先复制到 `~/.pi/agent/kuraxii/` 再安装。
 
 `package.json` 根脚本别名：
 ```bash
@@ -136,7 +138,7 @@ bun run build        # = bun scripts/build.ts
 
 ## 新增技能/插件的步骤
 
-1. **复制模板**：技能 → `cp -r skills/pi-skill-template skills/pi-skill-<name>`；扩展 → 参考 `packages/pi-skill-selector`
+1. **复制模板**：技能 → `cp -r skills/template skills/<name>`；扩展 → 参考 `packages/pi-skill-selector`
 2. **改 package.json**：`name`、`description`、`kuraxii.type`、`keywords`
 3. **改 index.ts**：更新 `discover()` 返回的 `SkillInfo[]`（名称、路径、标签）
 4. **写 SKILL.md**：在 `skills/<name>/SKILL.md` 填写 frontmatter + 指令
@@ -155,5 +157,5 @@ bun run build              # 编译脚本为二进制
 
 ## 注意
 
-- 本地已安装的 `pi-codex-bash` 由 `kuraxii` 元数据 `type: "extension"` 标记，安装后通过 `pi install ./` 引入（jiti 直接加载 `index.ts`，无 tsc 编译）
+- 所有插件均由 `kuraxii` 元数据标记身份；安装后 jiti 直接加载 `index.ts`（无 tsc 编译）
 - 不要在网络不可用时尝试 npm 源安装；所有插件均本地管理
