@@ -1,0 +1,41 @@
+{
+  "name": "beautiful-mermaid",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Render Mermaid diagrams directly to beautiful SVG or ASCII/Unicode text using the beautiful-mermaid library — no browser, no network, synchronous.",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "pi-skill-plugin",
+    "skill",
+    "mermaid",
+    "diagram",
+    "svg",
+    "ascii",
+    "visualization"
+  ],
+  "license": "MIT",
+  "main": "./index.ts",
+  "files": [
+    "index.ts",
+    "skills/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.0"
+  },
+  "kuraxii": {
+    "type": "skill",
+    "tags": [
+      "mermaid",
+      "diagram",
+      "svg",
+      "ascii",
+      "visualization"
+    ],
+    "overview": "Render Mermaid diagrams directly to beautiful SVG or ASCII/Unicode text via the beautiful-mermaid library — no browser, no network, synchronous, fully themeable (15 built-in themes + Shiki)."
+  }
+}
