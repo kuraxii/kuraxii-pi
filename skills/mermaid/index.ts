@@ -25,7 +25,7 @@ export async function discover(): Promise<SkillInfo[]> {
     {
       name: "mermaid",
       description:
-        "Generate Mermaid diagrams (.mmd) and export to PNG/SVG/PDF using mmdc CLI or Kroki API. Use when user mentions diagram, flowchart, sequence diagram, class diagram, ER diagram, state machine, architecture, visualize, 画图, 架构图, 流程图, 时序图. Supports 17+ diagram types with fully automatic layout.",
+        "Author Mermaid diagrams as .mmd text files with fully automatic layout. Use when user mentions diagram, flowchart, sequence diagram, class diagram, ER diagram, state machine, architecture, git graph, mindmap, gantt, 画图, 架构图, 流程图, 时序图, 思维导图. Supports 17+ diagram types. Writes source only — render via the beautiful-mermaid skill.",
       sourceDir: join(__dirname, "skills", "mermaid"),
       tags: ["mermaid", "diagram", "flowchart", "sequence", "visualization"],
     },
