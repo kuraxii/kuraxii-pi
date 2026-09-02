@@ -3,14 +3,16 @@
  *
  * 技能选择器插件。职责：
  * 1. 发现已安装的 skill 插件（通过动态 import discover() 接口）
- * 2. 提供交互式命令 /skill 供用户选择
- * 3. 提供工具供 LLM 驱动选择和安装
- * 4. 将选中的技能复制到项目 .pi/skills/ 目录
+ * 2. 提供交互式命令 /skill-selector：复选框勾选安装/取消技能
+ * 3. 提供工具供 LLM 驱动安装/卸载技能
+ * 4. 技能以软链接方式安装到项目 .pi/skills/ 目录，取消勾选即卸载
  */
 
+import { getSettingsListTheme } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Container, type SettingItem, SettingsList, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { cp, mkdir, readFile } from "node:fs/promises";
+import { symlink, mkdir, readFile, readdir, lstat, rm, unlink } from "node:fs/promises";
 import { join, dirname, isAbsolute, resolve } from "node:path";
 import { homedir } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
@@ -34,30 +36,68 @@ interface ResolvedPackage {
 // ── 入口 ────────────────────────────────────────────────
 
 export default function (pi: ExtensionAPI) {
-  // ── 命令: /skill 交互式选择 ──
+  // ── 命令: /skill-selector 复选框交互式安装/卸载 ──
 
-  pi.registerCommand("workflow", {
-    description: "发现可用技能，选择并安装到项目 .pi/skills/",
+  pi.registerCommand("skill-selector", {
+    description: "勾选/取消技能：软链接安装或卸载到项目 .pi/skills/",
     handler: async (_args, ctx) => {
+      if (ctx.mode !== "tui") {
+        ctx.ui.notify("/skill-selector 需要 TUI 模式", "error");
+        return;
+      }
+
       const skills = await discoverAllSkills();
       if (skills.length === 0) {
         ctx.ui.notify("未发现任何技能插件 (需要先 pi install 技能插件)", "warning");
         return;
       }
 
-      const labels = skills.map((s) => `${s.pluginName} › ${s.overview}`);
-      const selected = await ctx.ui.select("选择要安装的技能:", labels);
-      if (!selected) return;
+      const installed = await getInstalledSkillNames(ctx.cwd);
 
-      const index = labels.indexOf(selected);
-      const skill = skills[index];
-      if (!skill) return;
+      const items: SettingItem[] = skills.map((s) => ({
+        id: s.name,
+        label: s.name,
+        description: s.overview,
+        currentValue: installed.has(s.name) ? "[x]" : "[ ]",
+        values: ["[x]", "[ ]"],
+      }));
 
-      await installSkill(skill, ctx.cwd);
-      ctx.ui.notify(
-        `技能 "${skill.name}" 已安装到 ${join(".pi", "skills", skill.name)}`,
-        "success",
-      );
+      await ctx.ui.custom((tui, theme, _kb, done) => {
+        const container = new Container();
+        container.addChild(new Text(theme.fg("accent", theme.bold("选择要安装的技能 (Enter 切换)")), 1, 1));
+
+        const settingsList = new SettingsList(
+          items,
+          Math.min(items.length + 2, 15),
+          getSettingsListTheme(),
+          (id, newValue) => {
+            const skill = skills.find((s) => s.name === id);
+            if (!skill) return;
+            if (newValue === "[x]") {
+              installSkill(skill, ctx.cwd)
+                .then(() => ctx.ui.notify(`已安装技能 "${id}"`, "info"))
+                .catch((e) => ctx.ui.notify(`安装 "${id}" 失败: ${(e as Error).message}`, "error"));
+            } else {
+              uninstallSkill(id, ctx.cwd)
+                .then(() => ctx.ui.notify(`已卸载技能 "${id}"`, "info"))
+                .catch((e) => ctx.ui.notify(`卸载 "${id}" 失败: ${(e as Error).message}`, "error"));
+            }
+          },
+          () => done(undefined),
+          { enableSearch: true },
+        );
+
+        container.addChild(settingsList);
+
+        return {
+          render: (w: number) => container.render(w),
+          invalidate: () => container.invalidate(),
+          handleInput: (data: string) => {
+            settingsList.handleInput?.(data);
+            tui.requestRender();
+          },
+        };
+      });
     },
   });
 
@@ -78,7 +118,7 @@ export default function (pi: ExtensionAPI) {
               text: "未发现任何技能插件。请先安装技能插件。",
             },
           ],
-          details: {},
+          details: { skills: [] },
         };
       }
 
@@ -90,7 +130,7 @@ export default function (pi: ExtensionAPI) {
         content: [
           {
             type: "text" as const,
-            text: `可用技能列表：\n\n${list}\n\n使用 \`/skill\` 交互选择，或调用 \`install_skill\` 直接安装。`,
+            text: `可用技能列表：\n\n${list}\n\n使用 \`/skill-selector\` 交互选择，或调用 \`install_skill\` 直接安装。`,
           },
         ],
         details: {
@@ -109,7 +149,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "install_skill",
     label: "Install Skill",
-    description: "安装指定的技能到项目 .pi/skills/",
+    description: "将指定的技能软链接到项目 .pi/skills/",
     parameters: Type.Object({
       skillName: Type.String({ description: "要安装的技能名称" }),
     }),
@@ -134,13 +174,38 @@ export default function (pi: ExtensionAPI) {
         content: [
           {
             type: "text" as const,
-            text: `技能 "${match.name}" 已安装到 .pi/skills/${match.name}/`,
+            text: `技能 "${match.name}" 已软链接到 .pi/skills/${match.name}/`,
           },
         ],
         details: {
           name: match.name,
           overview: match.overview,
           path: join(".pi", "skills", match.name),
+        },
+      };
+    },
+  });
+
+  // ── 工具: 卸载指定技能 ──
+
+  pi.registerTool({
+    name: "uninstall_skill",
+    label: "Uninstall Skill",
+    description: "从项目 .pi/skills/ 卸载（移除软链接）指定的技能",
+    parameters: Type.Object({
+      skillName: Type.String({ description: "要卸载的技能名称" }),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      await uninstallSkill(params.skillName, ctx.cwd);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `技能 "${params.skillName}" 已从 .pi/skills/ 卸载`,
+          },
+        ],
+        details: {
+          name: params.skillName,
         },
       };
     },
@@ -182,10 +247,44 @@ async function discoverAllSkills(): Promise<SkillMeta[]> {
   return skills;
 }
 
+/** 移除 .pi/skills/ 下的旧目标（目录、文件或软链接） */
+async function removeTarget(targetDir: string) {
+  try {
+    const st = await lstat(targetDir);
+    if (st.isSymbolicLink() || st.isFile()) {
+      await unlink(targetDir);
+    } else {
+      await rm(targetDir, { recursive: true, force: true });
+    }
+  } catch {
+    // 目标不存在，跳过
+  }
+}
+
 async function installSkill(skill: SkillMeta, cwd: string) {
-  const targetDir = join(cwd, ".pi", "skills", skill.name);
-  await mkdir(targetDir, { recursive: true });
-  await cp(skill.sourceDir, targetDir, { recursive: true });
+  const skillsDir = join(cwd, ".pi", "skills");
+  const targetDir = join(skillsDir, skill.name);
+  await mkdir(skillsDir, { recursive: true });
+  await removeTarget(targetDir);
+  // 软链接到插件源码目录（绝对路径），技能更新即时生效、不占额外空间
+  await symlink(skill.sourceDir, targetDir, "dir");
+}
+
+/** 读取项目 .pi/skills/ 下已安装（软链接）的技能名 */
+async function getInstalledSkillNames(cwd: string): Promise<Set<string>> {
+  const skillsDir = join(cwd, ".pi", "skills");
+  const names = new Set<string>();
+  try {
+    const entries = await readdir(skillsDir, { withFileTypes: true });
+    for (const entry of entries) names.add(entry.name);
+  } catch {
+    // 无 .pi/skills 目录
+  }
+  return names;
+}
+
+async function uninstallSkill(name: string, cwd: string) {
+  await removeTarget(join(cwd, ".pi", "skills", name));
 }
 
 // ── 包发现 ──────────────────────────────────────────────
@@ -236,19 +335,21 @@ function resolvePackages(
 }
 
 function resolvePackage(source: string, settingsDir: string): ResolvedPackage | null {
-  // local path: ./packages/xxx or /absolute/path
-  if (source.startsWith("./") || source.startsWith("../") || source.startsWith("/")) {
-    const pkgDir = isAbsolute(source) ? source : resolve(settingsDir, source);
-    return resolveLocalPackage(pkgDir);
-  }
-
   // npm: npm:@scope/name@version
   if (source.startsWith("npm:")) {
     const name = source.replace(/^npm:/, "").replace(/@[\d.]+$/, "");
     return resolveNpmPackage(name);
   }
 
-  return null;
+  // git:/http(s): 等远程源不是本地包，跳过
+  if (source.startsWith("git:") || /^[a-z][a-z0-9+.-]*:\/\//i.test(source)) {
+    return null;
+  }
+
+  // 本地路径：绝对路径，或相对 settingsDir 的路径（含 ./、../ 以及
+  // install.ts 记录的无前缀相对路径，如 kuraxii/skills/xxx）
+  const pkgDir = isAbsolute(source) ? source : resolve(settingsDir, source);
+  return resolveLocalPackage(pkgDir);
 }
 
 function resolveLocalPackage(pkgDir: string): ResolvedPackage | null {
