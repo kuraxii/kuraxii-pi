@@ -5,7 +5,7 @@
 ## 设计理念
 
 - **技能即插件**：每个技能是一个独立的 pi 插件包，通过 `discover()` 接口暴露，再经由技能选择器选择性加载
-- **按需安装**：技能不自动加载到全局；由选择器根据任务复制到具体项目的 `.pi/skills/`
+- **按需安装**：技能不自动加载到全局；由选择器根据任务软链接到具体项目的 `.pi/skills/`
 - **项目级技能**：技能只作用于被选择的项目，不污染全局环境
 - **扫描即真理**：`scripts/install.ts` 自动扫描 `packages/` 与 `skills/`，安装/更新插件、删除已移除的插件
 - **零运行时依赖**：开发脚本用内置 bun（`.bun/`）编译为 standalone 二进制运行，不依赖系统环境
@@ -15,7 +15,7 @@
 ```
 kuraxii-pi/
 ├── packages/                 # pi 扩展/功能插件（type: "extension"）
-│   ├── pi-skill-selector/    # 核心：技能选择器（/workflow 命令 + 工具）
+│   ├── pi-skill-selector/    # 核心：技能选择器（/skill-selector 命令 + 工具）
 │   └── pi-codex-bash/        # Codex 风格 shell 适配器
 ├── skills/                   # 技能插件（type: "skill"）
 │   ├── devops/               # 例：DevOps 技能
@@ -132,9 +132,10 @@ bun run build        # = bun scripts/build.ts
 - 扫描全局 `~/.pi/agent/settings.json` 中的已安装包，定位 `keywords` 含 `pi-skill-plugin` 的插件
 - 动态 `import` 其 `discover()`，汇总 `SkillInfo`
 - 提供：
-  - `/workflow` 命令：交互式列出技能与标签，用户选择后复制到 `.pi/skills/`
+  - `/skill-selector` 命令：复选框列出可用技能与已安装状态，勾选即软链接安装、取消勾选即卸载
   - `list_skills` 工具：列出所有可用技能（LLM 驱动）
-  - `install_skill` 工具：按名称安装指定技能
+  - `install_skill` 工具：按名称软链接安装指定技能
+  - `uninstall_skill` 工具：按名称卸载（移除软链接）指定技能
 
 ## 新增技能/插件的步骤
 
@@ -144,7 +145,7 @@ bun run build        # = bun scripts/build.ts
 4. **写 SKILL.md**：在 `skills/<name>/SKILL.md` 填写 frontmatter + 指令
 5. **生成 overview**：agent 读取并分析 `SKILL.md`，用英文简要概括该技能的功能（用途/适用场景/核心能力），写入 `package.json` 的 `kuraxii.overview` 字段
 6. **安装**：`bun run install`（自动扫描并安装）
-7. **在项目中使用**：`/workflow` 选择技能，复制到该项目 `.pi/skills/`
+7. **在项目中使用**：`/skill-selector` 选择技能，软链接到该项目 `.pi/skills/`
 
 ## 常用命令
 
@@ -154,6 +155,12 @@ bun run uninstall          # 卸载本仓库全部插件
 bun run bootstrap          # 引导：下载 bun(如缺) + 编译脚本
 bun run build              # 编译脚本为二进制
 ```
+
+## 提交约定
+
+- **分阶段提交**：每完成一个**阶段性成果**（一个完整、可独立运行/回滚的逻辑单元，例如新增一个技能、一次选择器改造、一次文档更新）就立即 `git commit`，不要把所有改动堆成一个大提交
+- **提交信息**：遵循 Conventional Commits，格式 `<type>: <中文简述>`；`type` 取值：`feat`（新功能）、`fix`（修复）、`refactor`（重构）、`docs`（文档）、`style`（格式）、`chore`（杂项）、`build`（构建/依赖）
+- **提交前自检**：确认本阶段改动自洽且可工作（类型检查/测试通过，若有）；临时/一次性调试文件不要混入提交
 
 ## 注意
 

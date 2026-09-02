@@ -5,7 +5,7 @@
 ## 设计理念
 
 - **技能即插件**：每个技能是一个独立的 pi 插件包，通过 `discover()` 接口暴露
-- **按需安装**：技能不自动加载到全局，通过选择器复制到项目 `.pi/skills/`
+- **按需安装**：技能不自动加载到全局，通过选择器软链接到项目 `.pi/skills/`
 - **项目级技能**：技能仅作用于当前项目，不污染全局
 - **扫描即真理**：`scripts/install.ts` 自动扫描 `packages/` 与 `skills/`，安装/更新/删除
 - **本地安装**：插件复制到 `~/.pi/agent/kuraxii/` 后安装，不依赖仓库源码、不引入网络依赖
@@ -20,7 +20,7 @@
 ```
 kuraxii-pi/
 ├── packages/                 # pi 扩展插件（type: "extension"）
-│   ├── pi-skill-selector/    # 核心：技能选择器（/workflow + 工具）
+│   ├── pi-skill-selector/    # 核心：技能选择器（/skill-selector + 工具）
 │   ├── pi-ask/               # 交互决策
 │   ├── pi-vent/              # 工作流摩擦上报
 │   ├── pi-smart-btw/         # 异步 follow-up
@@ -53,13 +53,13 @@ bun scripts/install.ts uninstall    # 卸载本仓库全部插件
    → 复制到 ~/.pi/agent/kuraxii/
    → pi install 副本
 
-2. 在项目中使用 /workflow 命令（或 list_skills 工具）
+2. 在项目中使用 /skill-selector 命令（或 list_skills 工具）
    → 选择器扫描全局 settings 中的已安装包
    → 动态 import 每个 skill 插件的 discover() 接口
    → 获取技能列表
 
 3. 用户/LLM 选择技能
-   → 复制 skills/xxx 到项目 .pi/skills/xxx/
+   → 软链接 skills/xxx 到项目 .pi/skills/xxx/
    → pi 在项目级自动发现技能
 ```
 

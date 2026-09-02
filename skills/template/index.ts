@@ -10,7 +10,7 @@
  * 3. 修改 index.ts 中的 discover() 返回信息
  * 4. 在 skills/your-skill/ 下编写 SKILL.md
  * 5. 安装: pi install ./packages/pi-skill-your-name
- * 6. 在项目中使用 /skill 选择安装
+ * 6. 在项目中使用 /skill-selector 选择安装
  */
 
 import { join, dirname } from "node:path";

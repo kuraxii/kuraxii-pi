@@ -23,4 +23,4 @@ pi coding agent 技能插件模板。
    pi install ./packages/pi-skill-your-name
    ```
 
-6. 在项目中使用 `/skill` 选择安装技能
+6. 在项目中使用 `/skill-selector` 选择安装技能

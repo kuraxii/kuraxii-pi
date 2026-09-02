@@ -14,7 +14,7 @@ bun run install
 
 ## 使用
 
-在项目中使用 `/workflow` 选择技能，或在对话中描述需要创建/维护 AGENTS.md 的需求，由 LLM 加载。
+在项目中使用 `/skill-selector` 选择技能，或在对话中描述需要创建/维护 AGENTS.md 的需求，由 LLM 加载。
 
 ## 内容
 

@@ -14,7 +14,7 @@ bun run install
 
 ## 使用
 
-在项目中使用 `/workflow` 选择技能，或在对话中描述专利相关需求，由 LLM 调用 `install_skill` 加载。
+在项目中使用 `/skill-selector` 选择技能，或在对话中描述专利相关需求，由 LLM 调用 `install_skill` 加载。
 
 ## 内容
 
